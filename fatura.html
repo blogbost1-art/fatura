@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AVIS e-Fatura</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background:#f3f4f6; font-family: Inter, system-ui, -apple-system, "Helvetica Neue", Arial; }
+  .invoice-container { position: relative; max-width:900px; margin:30px auto; background:#fff; border-radius:8px; padding:28px; box-shadow:0 10px 30px rgba(0,0,0,0.08); overflow:hidden; }
+  .watermark { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) rotate(-30deg); font-size:180px; font-weight:900; color:rgba(0,0,0,0.03); z-index:0; pointer-events:none; user-select:none; white-space:nowrap; letter-spacing:8px; }
+  .header-row { display:flex; align-items:center; justify-content:space-between; gap:12px; position:relative; z-index:1; }
+  .header-left { font-size:13px; color:#374151; }
+  .logo-center img { height:78px; display:block; margin:0 auto; }
+  .logo-right img { height:44px; display:block; }
+  h1.title { text-align:center; color:#b91c1c; font-weight:700; margin:18px 0; }
+  .section { display:flex; gap:16px; margin-bottom:14px; }
+  .card { background:#fafafa; border:1px solid #e6e6e6; padding:12px; border-radius:6px; flex:1; font-size:13px; color:#1f2937; }
+  label { display:block; font-size:12px; color:#374151; margin-bottom:6px; font-weight:600; }
+  input[type=text], input[type=datetime-local], input[type=number], textarea, select { width:100%; padding:8px 10px; border:1px solid #d1d5db; border-radius:6px; background:#fff; font-size:13px; color:#111827; }
+  textarea { min-height:72px; resize:vertical; }
+  .table { width:100%; border-collapse:collapse; margin-top:10px; font-size:13px; }
+  .table th, .table td { border:1px solid #e5e7eb; padding:8px 10px; text-align:left; }
+  .table th { background:#f9fafb; font-weight:700; color:#374151; }
+  .totals { margin-top:8px; display:flex; justify-content:flex-end; gap:12px; flex-direction:column; }
+  .totals .row { display:flex; justify-content:space-between; width:320px; font-size:14px; color:#111827; }
+  .note { font-size:11px; color:#6b7280; margin-top:14px; text-align:center; }
+  .btn { background:#b91c1c; color:#fff; padding:10px 16px; border-radius:6px; font-weight:700; border:none; cursor:pointer; }
+  .meta { font-size:12px; color:#374151; }
+  @media print { .btn { display:none; } }
+</style>
+</head>
+<body>
+<div class="invoice-container" id="invoiceRoot">
+  <div class="watermark">AVIS</div>
+
+  <div class="header-row">
+    <div class="header-left meta">
+      <div>Fatura Tarihi: <span id="faturaTarih">--</span></div>
+      <div>Seri No: <strong id="faturaSeri">AVS2025 / 00001</strong></div>
+    </div>
+
+    <div class="logo-center">
+      <img src="avis2.jpg" alt="Avis2 Logo" id="logoCenter">
+    </div>
+
+    <div class="logo-right">
+      <img src="avis.jpg" alt="Avis Logo" id="logoRight">
+    </div>
+  </div>
+
+  <h1 class="title">AVIS RENT A CAR - eFATURA</h1>
+
+  <form id="efForm">
+    <div class="section">
+      <div class="card">
+        <div style="font-weight:800; margin-bottom:8px;">Müşteri Bilgileri</div>
+        <label>Ad Soyad</label><input name="adSoyad" type="text" placeholder="Ad Soyad">
+        <label>TC / Vergi No</label><input name="tc" type="text" placeholder="T.C. Kimlik veya Vergi No">
+        <label>Telefon</label><input name="tel" type="text" placeholder="+90 5xx xxx xxxx">
+        <label>E-posta</label><input name="email" type="text" placeholder="eposta@ornek.com">
+        <label>Adres</label><textarea name="adres" placeholder="Adres bilgisi"></textarea>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:800; margin-bottom:8px;">Araç Bilgileri</div>
+        <label>Marka</label><input name="marka" type="text" placeholder="Örn: Renault">
+        <label>Model</label><input name="model" type="text" placeholder="Örn: Clio">
+        <label>Plaka</label><input name="plaka" type="text" placeholder="34ABC34">
+        <label>Yakıt / Vites</label><input name="yakit" type="text" placeholder="Benzin / Manuel">
+        <label>Ek Bilgi</label><textarea name="ek" placeholder="Opsiyonel not"></textarea>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="card">
+        <div style="font-weight:800; margin-bottom:8px;">Kiralama Bilgileri</div>
+        <label>Başlangıç Tarihi</label><input name="baslangic" type="datetime-local">
+        <label>Bitiş Tarihi</label><input name="bitis" type="datetime-local">
+        <label>Teslimat Türü</label>
+        <select name="teslimat">
+          <option value="Ofisten Teslim">Ofisten Teslim</option>
+          <option value="Adrese Teslim">Adrese Teslim</option>
+          <option value="Vale">Vale</option>
+        </select>
+        <label>Gün Sayısı</label><input name="gun" type="number" min="0">
+      </div>
+
+      <div class="card">
+        <div style="font-weight:800; margin-bottom:8px;">Fiyat Bilgileri</div>
+        <label>Günlük Ücret (₺)</label><input name="gunluk" type="number" step="0.01">
+        <label>Depozito (₺)</label><input name="depozito" type="number" step="0.01">
+        <label>KDV Oranı (%)</label><input name="kdv" type="number" value="18" step="0.01">
+        <label>Toplam (₺)</label><input name="toplam" type="number" step="0.01">
+      </div>
+    </div>
+
+    <div style="text-align:center; margin-top:14px;">
+      <button type="button" class="btn" id="savePdfBtn">PDF Olarak Kaydet</button>
+    </div>
+  </form>
+
+  <p class="note">Bu belge 509 Sıra Nolu VUK Genel Tebliği’ne göre e-Fatura niteliğindedir.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+/* Seri yönetimi (localStorage) */
+function pad(num, size) {
+  let s = "00000" + num;
+  return s.substr(s.length - size);
+}
+function readCounter() {
+  const v = localStorage.getItem('avis_serial_counter');
+  return v ? parseInt(v,10) : 0;
+}
+function writeCounter(n) {
+  localStorage.setItem('avis_serial_counter', String(n));
+}
+function peekNext() {
+  const cur = readCounter();
+  return cur === 0 ? 1 : cur + 1;
+}
+function consumeNext() {
+  const cur = readCounter();
+  const next = cur === 0 ? 1 : cur + 1;
+  writeCounter(next);
+  return next;
+}
+
+/* Tarih ve gösterim ayarı */
+function setHeaderNow() {
+  const now = new Date();
+  document.getElementById('faturaTarih').textContent = now.toLocaleString('tr-TR');
+  const nxt = peekNext();
+  document.getElementById('faturaSeri').textContent = 'AVS2025 / ' + pad(nxt,5);
+}
+setHeaderNow();
+
+/* Build a cleaned preview for PDF */
+function collectData() {
+  const f = document.getElementById('efForm');
+  const data = {};
+  new FormData(f).forEach((v,k)=>data[k]=v);
+  return data;
+}
+
+/* Render a printable node (cloned) and convert to PDF */
+async function generatePdfFromNode(node, filename) {
+  // scale for quality
+  const scale = 2;
+  const opts = { scale: scale, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' };
+  const canvas = await html2canvas(node, opts);
+  const imgData = canvas.toDataURL('image/png');
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('p','pt','a4');
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pdfHeight = (canvas.height * pageWidth) / canvas.width;
+  pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pdfHeight);
+  pdf.save(filename);
+}
+
+/* Create a printable clone with filled values to ensure clean PDF */
+function buildPrintableNode(data, serialText, dateText) {
+  const wrapper = document.createElement('div');
+  wrapper.style.width = '900px';
+  wrapper.style.padding = '28px';
+  wrapper.style.background = '#fff';
+  wrapper.style.fontFamily = 'Inter, Arial, sans-serif';
+  wrapper.style.position = 'relative';
+  wrapper.innerHTML = `
+    <div style="position:relative;">
+      <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-30deg);font-size:180px;font-weight:900;color:rgba(0,0,0,0.03);pointer-events:none;user-select:none;white-space:nowrap;letter-spacing:8px;">AVIS</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-size:12px;color:#374151;">
+          <div>Fatura Tarihi: <strong>${dateText}</strong></div>
+          <div>Seri No: <strong>${serialText}</strong></div>
+        </div>
+        <div style="text-align:center;"><img src="avis2.jpg" style="height:78px;" alt="logo"></div>
+        <div style="text-align:right;"><img src="avis.jpg" style="height:44px;" alt="logo"></div>
+      </div>
+      <h2 style="text-align:center;color:#b91c1c;margin:10px 0;font-weight:800;">AVIS RENT A CAR - eFATURA</h2>
+      <div style="display:flex;gap:12px;margin-top:8px;">
+        <div style="flex:1;padding:10px;border:1px solid #e6e6e6;background:#fafafa;">
+          <div style="font-weight:700;margin-bottom:6px;">Müşteri Bilgileri</div>
+          <div><strong>Ad Soyad:</strong> ${data.adSoyad || '-'}</div>
+          <div><strong>TC / Vergi No:</strong> ${data.tc || '-'}</div>
+          <div><strong>Telefon:</strong> ${data.tel || '-'}</div>
+          <div><strong>E-posta:</strong> ${data.email || '-'}</div>
+          <div style="margin-top:6px;"><strong>Adres:</strong> ${data.adres || '-'}</div>
+        </div>
+        <div style="flex:1;padding:10px;border:1px solid #e6e6e6;background:#fafafa;">
+          <div style="font-weight:700;margin-bottom:6px;">Araç Bilgileri</div>
+          <div><strong>Marka:</strong> ${data.marka || '-'}</div>
+          <div><strong>Model:</strong> ${data.model || '-'}</div>
+          <div><strong>Plaka:</strong> ${data.plaka || '-'}</div>
+          <div><strong>Yakıt / Vites:</strong> ${data.yakit || '-'}</div>
+          <div style="margin-top:6px;"><strong>Ek:</strong> ${data.ek || '-'}</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;margin-top:12px;">
+        <div style="flex:1;padding:10px;border:1px solid #e6e6e6;background:#fafafa;">
+          <div style="font-weight:700;margin-bottom:6px;">Kiralama Bilgileri</div>
+          <div><strong>Başlangıç:</strong> ${data.baslangic || '-'}</div>
+          <div><strong>Bitiş:</strong> ${data.bitis || '-'}</div>
+          <div><strong>Teslimat Türü:</strong> ${data.teslimat || '-'}</div>
+          <div><strong>Gün Sayısı:</strong> ${data.gun || '-'}</div>
+        </div>
+        <div style="flex:1;padding:10px;border:1px solid #e6e6e6;background:#fafafa;">
+          <div style="font-weight:700;margin-bottom:6px;">Fiyat Bilgileri</div>
+          <div><strong>Günlük Ücret:</strong> ${data.gunluk || '-'} ₺</div>
+          <div><strong>Depozito:</strong> ${data.depozito || '-'} ₺</div>
+          <div><strong>KDV (%):</strong> ${data.kdv || '-'}</div>
+          <div style="margin-top:6px;"><strong>Toplam:</strong> ${data.toplam || '-'} ₺</div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;display:flex;justify-content:flex-end;">
+        <div style="width:320px;border-top:1px solid #e6e6e6;padding-top:8px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><strong>Ara Toplam:</strong><span>${data.toplam || '0'} ₺</span></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><strong>KDV Tutarı:</strong><span>${(data.toplam && data.kdv)? ( (parseFloat(data.toplam)*(parseFloat(data.kdv)/100)).toFixed(2) + ' ₺') : '-'}</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:800;"><strong>Genel Toplam:</strong><span>${data.toplam || '0'} ₺</span></div>
+        </div>
+      </div>
+
+      <p style="text-align:center;color:#6b7280;font-size:11px;margin-top:16px;">Bu belge 509 Sıra Nolu VUK Genel Tebliği’ne göre e-Fatura niteliğindedir.</p>
+    </div>
+  `;
+  return wrapper;
+}
+
+/* Main handler for PDF creation */
+document.getElementById('savePdfBtn').addEventListener('click', async function(){
+  const data = collectData();
+  const nextNum = consumeNext();
+  const serialText = 'AVS2025 / ' + pad(nextNum,5);
+  const now = new Date();
+  const dateText = now.toLocaleString('tr-TR');
+
+  // Update visible header immediately
+  document.getElementById('faturaTarih').textContent = dateText;
+  document.getElementById('faturaSeri').textContent = serialText;
+
+  // Build printable node
+  const printable = buildPrintableNode(data, serialText, dateText);
+
+  try {
+    await generatePdfFromNode(printable, `Avis_EFatura_${serialText.replace(/\s+/g,'_').replace(/\//g,'-')}.pdf`);
+    alert('e-Fatura PDF olarak indirildi.');
+  } catch (err) {
+    console.error(err);
+    alert('PDF oluşturulurken hata oluştu. Tarayıcı konsolunu kontrol ediniz.');
+  }
+});
+</script>
+</body>
+</html>
