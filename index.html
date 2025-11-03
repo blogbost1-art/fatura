@@ -108,7 +108,11 @@ async function generatePdfFromNode(node, filename) {
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = (canvas.height * pageWidth) / canvas.width;
     pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pdfHeight);
-    pdf.save(filename);
+    if (/Mobi|Android/i.test(navigator.userAgent)) {
+      pdf.output('dataurlnewwindow'); // mobilde yeni sekmede aç
+    } else {
+      pdf.save(filename); // masaüstünde indir
+    }
   } catch (error) {
     console.error('PDF oluşturma hatası:', error);
     alert('PDF oluşturulurken hata oluştu. Tarayıcı konsolunu kontrol ediniz.');
