@@ -115,6 +115,9 @@ async function generatePdfFromNode(node, filename) {
   }
 }
 document.getElementById('savePdfBtn').addEventListener('click', async function(){
+  const printable = document.getElementById('invoiceRoot');
+  const originalWidth = printable.style.width;
+  printable.style.width = "900px"; // mobil görünümde PDF düzgün hizalansın
   const data = collectData();
   const nextNum = consumeNext();
   const serialText = 'AVS2025 / ' + pad(nextNum,5);
