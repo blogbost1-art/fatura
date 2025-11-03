@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>AVIS e-Fatura</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 body { background:#f3f4f6; font-family: Inter, system-ui, -apple-system, "Helvetica Neue", Arial; }
 .invoice-container { position: relative; max-width:900px; margin:30px auto; background:#fff; border-radius:8px; padding:28px; box-shadow:0 10px 30px rgba(0,0,0,0.08); overflow:hidden; }
@@ -33,9 +34,8 @@ textarea { min-height:72px; resize:vertical; }
       <div>Fatura Tarihi: <span id="faturaTarih">--</span></div>
       <div>Seri No: <strong id="faturaSeri">AVS2025 / 00001</strong></div>
     </div>
-
-    <div class="logo-center"><img src="avis2.jpg" alt="Avis2 Logo" crossorigin="anonymous"></div>
-    <div class="logo-right"><img src="avis.jpg" alt="Avis Logo" crossorigin="anonymous"></div>
+    <div class="logo-center"><img id="logo2" src="avis2.jpg" alt="Avis2 Logo" crossorigin="anonymous"></div>
+    <div class="logo-right"><img id="logo1" src="avis.jpg" alt="Avis Logo" crossorigin="anonymous"></div>
   </div>
 
   <h1 class="title">AVIS RENT A CAR - eFATURA</h1>
@@ -44,20 +44,20 @@ textarea { min-height:72px; resize:vertical; }
     <div class="section">
       <div class="card">
         <div style="font-weight:800; margin-bottom:8px;">Müşteri Bilgileri</div>
-        <label>Ad Soyad</label><input name="adSoyad" type="text">
-        <label>TC / Vergi No</label><input name="tc" type="text">
-        <label>Telefon</label><input name="tel" type="text" placeholder="+90 5xx xxx xxxx">
-        <label>E-posta</label><input name="email" type="text">
-        <label>Adres</label><textarea name="adres"></textarea>
+        <label>Ad Soyad</label><input name="adSoyad" type="text" id="adSoyad">
+        <label>TC / Vergi No</label><input name="tc" type="text" id="tc">
+        <label>Telefon</label><input name="tel" type="text" id="tel" placeholder="+90 5xx xxx xxxx">
+        <label>E-posta</label><input name="email" type="text" id="email">
+        <label>Adres</label><textarea name="adres" id="adres"></textarea>
       </div>
 
       <div class="card">
         <div style="font-weight:800; margin-bottom:8px;">Araç Bilgileri</div>
-        <label>Marka</label><input name="marka" type="text">
-        <label>Model</label><input name="model" type="text">
-        <label>Plaka</label><input name="plaka" type="text">
-        <label>Yakıt / Vites</label><input name="yakit" type="text">
-        <label>Ek Bilgi</label><textarea name="ek"></textarea>
+        <label>Marka</label><input name="marka" type="text" id="marka">
+        <label>Model</label><input name="model" type="text" id="model">
+        <label>Plaka</label><input name="plaka" type="text" id="plaka">
+        <label>Yakıt / Vites</label><input name="yakit" type="text" id="yakit">
+        <label>Ek Bilgi</label><textarea name="ek" id="ek"></textarea>
       </div>
     </div>
 
@@ -68,13 +68,13 @@ textarea { min-height:72px; resize:vertical; }
         <label>Bitiş Tarihi</label><input name="bitis" id="bitis" type="datetime-local">
         <label>Gün Sayısı</label><input name="gun" id="gun" type="number" readonly>
         <label>Teslimat Türü</label>
-        <select name="teslimat">
+        <select name="teslimat" id="teslimat">
           <option value="Ofisten Teslim">Ofisten Teslim</option>
           <option value="Adrese Teslim">Adrese Teslim</option>
           <option value="Vale">Vale</option>
         </select>
         <label>Ödeme Yöntemi</label>
-        <select name="odeme">
+        <select name="odeme" id="odeme">
           <option value="Havale/EFT" selected>Havale / EFT</option>
           <option value="Kredi Kartı">Kredi Kartı</option>
           <option value="Nakit">Nakit</option>
@@ -98,60 +98,80 @@ textarea { min-height:72px; resize:vertical; }
   <p class="note">Bu belge 509 Sıra Nolu VUK Genel Tebliği’ne göre e-Fatura niteliğindedir.</p>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
-function pad(num, size){let s="00000"+num;return s.substr(s.length-size);}
+function pad(num, size){let s=\"00000\"+num;return s.substr(s.length-size);}
 function readCounter(){return parseInt(localStorage.getItem('avis_serial_counter')||'0',10);}
 function writeCounter(n){localStorage.setItem('avis_serial_counter',String(n));}
 function consumeNext(){const cur=readCounter();const next=cur?cur+1:1;writeCounter(next);return next;}
 function setHeaderNow(){const now=new Date();document.getElementById('faturaTarih').textContent=now.toLocaleString('tr-TR');document.getElementById('faturaSeri').textContent='AVS2025 / '+pad(readCounter()+1,5);}
 setHeaderNow();
 
-function hesaplaGunVeTutar(){
-  const bas=document.getElementById("baslangic").value;
-  const bit=document.getElementById("bitis").value;
-  const gunluk=parseFloat(document.getElementById("gunluk").value)||0;
-  const kdv=parseFloat(document.getElementById("kdv").value)||0;
-  const depozito=parseFloat(document.getElementById("depozito").value)||0;
-  if(bas && bit){
-    const start=new Date(bas);
-    const end=new Date(bit);
-    const fark=(end-start)/(1000*60*60*24);
-    const gun=Math.max(1,Math.ceil(fark));
-    document.getElementById("gun").value=gun;
-    const kiraBedeli=gun*gunluk;
-    const kdvTutar=kiraBedeli*(kdv/100);
-    const toplam=kiraBedeli+kdvTutar+depozito;
-    document.getElementById("toplam").value=toplam.toFixed(2);
-  }
-}
-["baslangic","bitis","gunluk","kdv","depozito"].forEach(id=>{
-  document.getElementById(id).addEventListener("change",hesaplaGunVeTutar);
-});
-
-async function generatePdf(node, filename){
+document.getElementById('savePdfBtn').addEventListener('click', ()=>{
   const { jsPDF } = window.jspdf;
-  const btn=node.querySelector(".btn");
-  if(btn) btn.style.display="none";
+  const pdf = new jsPDF({ unit:'pt', format:'a4' });
+  const margin = 40;
+  let y = margin;
 
-  const canvas=await html2canvas(node,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#fff'});
-  const imgData=canvas.toDataURL('image/png');
-  const pdf=new jsPDF('p','pt','a4');
-  const pageWidth=pdf.internal.pageSize.getWidth();
-  const imgHeight=(canvas.height*pageWidth)/canvas.width;
-  pdf.addImage(imgData,'PNG',0,0,pageWidth,imgHeight);
-  pdf.save(filename);
-  if(btn) btn.style.display="inline-block";
-}
+  const logo1 = document.getElementById('logo1');
+  const logo2 = document.getElementById('logo2');
+  if(logo1 && logo1.src) pdf.addImage(logo1.src,'JPEG',450,30,80,40);
+  if(logo2 && logo2.src) pdf.addImage(logo2.src,'JPEG',250,20,80,50);
 
-document.getElementById('savePdfBtn').addEventListener('click', async ()=>{
-  const nextNum=consumeNext();
-  const serial='AVS2025 / '+pad(nextNum,5);
-  document.getElementById('faturaSeri').textContent=serial;
-  document.getElementById('faturaTarih').textContent=new Date().toLocaleString('tr-TR');
-  await generatePdf(document.getElementById('invoiceRoot'),
-  `Avis_EFatura_${serial.replace(/\s+/g,'_').replace(/\//g,'-')}.pdf`);
+  pdf.setFontSize(16);
+  pdf.setTextColor(185,28,28);
+  pdf.text('AVIS RENT A CAR - eFATURA', margin, y+40);
+  pdf.setTextColor(0,0,0);
+  y+=70;
+
+  pdf.setFontSize(10);
+  pdf.text('Fatura Tarihi: '+new Date().toLocaleString('tr-TR'), margin, y);
+  pdf.text('Seri No: '+document.getElementById('faturaSeri').textContent, margin+300, y);
+  y+=20;
+
+  pdf.setFontSize(12);
+  pdf.text('Müşteri Bilgileri', margin, y); y+=14;
+  pdf.setFontSize(10);
+  pdf.text(`Ad Soyad: ${document.getElementById('adSoyad').value}`, margin, y+=12);
+  pdf.text(`TC / Vergi No: ${document.getElementById('tc').value}`, margin, y+=12);
+  pdf.text(`Telefon: ${document.getElementById('tel').value}`, margin, y+=12);
+  pdf.text(`E-posta: ${document.getElementById('email').value}`, margin, y+=12);
+  pdf.text(`Adres: ${document.getElementById('adres').value}`, margin, y+=12);
+  y+=20;
+
+  pdf.setFontSize(12);
+  pdf.text('Araç Bilgileri', margin, y); y+=14;
+  pdf.setFontSize(10);
+  pdf.text(`Marka: ${document.getElementById('marka').value}`, margin, y+=12);
+  pdf.text(`Model: ${document.getElementById('model').value}`, margin, y+=12);
+  pdf.text(`Plaka: ${document.getElementById('plaka').value}`, margin, y+=12);
+  pdf.text(`Yakıt/Vites: ${document.getElementById('yakit').value}`, margin, y+=12);
+  pdf.text(`Ek Bilgi: ${document.getElementById('ek').value}`, margin, y+=12);
+  y+=20;
+
+  pdf.setFontSize(12);
+  pdf.text('Kiralama Bilgileri', margin, y); y+=14;
+  pdf.setFontSize(10);
+  pdf.text(`Başlangıç: ${document.getElementById('baslangic').value}`, margin, y+=12);
+  pdf.text(`Bitiş: ${document.getElementById('bitis').value}`, margin, y+=12);
+  pdf.text(`Gün Sayısı: ${document.getElementById('gun').value}`, margin, y+=12);
+  pdf.text(`Teslimat Türü: ${document.getElementById('teslimat').value}`, margin, y+=12);
+  pdf.text(`Ödeme Yöntemi: ${document.getElementById('odeme').value}`, margin, y+=12);
+  y+=20;
+
+  pdf.setFontSize(12);
+  pdf.text('Fiyat Bilgileri', margin, y); y+=14;
+  pdf.setFontSize(10);
+  pdf.text(`Günlük Ücret: ${document.getElementById('gunluk').value} ₺`, margin, y+=12);
+  pdf.text(`KDV Oranı: ${document.getElementById('kdv').value} %`, margin, y+=12);
+  pdf.text(`Depozito: ${document.getElementById('depozito').value} ₺`, margin, y+=12);
+  pdf.text(`Toplam: ${document.getElementById('toplam').value} ₺`, margin, y+=12);
+  y+=20;
+
+  pdf.setFontSize(9);
+  pdf.text('Bu belge 509 Sıra Nolu VUK Genel Tebliği’ne göre e-Fatura niteliğindedir.', margin, y+=20);
+
+  const serial = document.getElementById('faturaSeri').textContent.replace(/\\s+/g,'_');
+  pdf.save(`Avis_EFatura_${serial}.pdf`);
 });
 </script>
 </body>
