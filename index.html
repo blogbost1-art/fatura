@@ -34,8 +34,12 @@ textarea { min-height:72px; resize:vertical; }
       <div>Fatura Tarihi: <span id="faturaTarih">--</span></div>
       <div>Seri No: <strong id="faturaSeri">AVS2025 / 00001</strong></div>
     </div>
-    <div class="logo-center"><img id="logo2" src="avis2.jpg" alt="Avis2 Logo" crossorigin="anonymous"></div>
-    <div class="logo-right"><img id="logo1" src="avis.jpg" alt="Avis Logo" crossorigin="anonymous"></div>
+    <div class="logo-center">
+      <img id="logo2" src="logo2.jpg" alt="Avis2 Logo" crossorigin="anonymous">
+    </div>
+    <div class="logo-right">
+      <img id="logo1" src="logo.jpg" alt="Avis Logo" crossorigin="anonymous">
+    </div>
   </div>
 
   <h1 class="title">AVIS RENT A CAR - eFATURA</h1>
@@ -99,79 +103,51 @@ textarea { min-height:72px; resize:vertical; }
 </div>
 
 <script>
-function pad(num, size){let s=\"00000\"+num;return s.substr(s.length-size);}
+function pad(num, size){let s="00000"+num;return s.substr(s.length-size);}
 function readCounter(){return parseInt(localStorage.getItem('avis_serial_counter')||'0',10);}
 function writeCounter(n){localStorage.setItem('avis_serial_counter',String(n));}
 function consumeNext(){const cur=readCounter();const next=cur?cur+1:1;writeCounter(next);return next;}
-function setHeaderNow(){const now=new Date();document.getElementById('faturaTarih').textContent=now.toLocaleString('tr-TR');document.getElementById('faturaSeri').textContent='AVS2025 / '+pad(readCounter()+1,5);}
+function setHeaderNow(){
+  const now=new Date();
+  document.getElementById('faturaTarih').textContent=now.toLocaleString('tr-TR');
+  document.getElementById('faturaSeri').textContent='AVS2025 / '+pad(readCounter()+1,5);
+}
 setHeaderNow();
 
-document.getElementById('savePdfBtn').addEventListener('click', ()=>{
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ unit:'pt', format:'a4' });
-  const margin = 40;
-  let y = margin;
+async function toDataURL(url) {
+  const response = await fetch(url, { mode: 'cors' });
+  const blob = await response.blob();
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.readAsDataURL(blob);
+  });
+}
 
+document.getElementById('savePdfBtn').addEventListener('click', async ()=>{
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('p', 'pt', 'a4');
+  const element = document.getElementById('invoiceRoot');
+
+  // logoları base64'e dönüştür ve src'yi değiştir
   const logo1 = document.getElementById('logo1');
   const logo2 = document.getElementById('logo2');
-  if(logo1 && logo1.src) pdf.addImage(logo1.src,'JPEG',450,30,80,40);
-  if(logo2 && logo2.src) pdf.addImage(logo2.src,'JPEG',250,20,80,50);
+  try {
+    if (logo1 && logo1.src && !logo1.src.startsWith('data:')) logo1.src = await toDataURL('logo.jpg');
+    if (logo2 && logo2.src && !logo2.src.startsWith('data:')) logo2.src = await toDataURL('logo2.jpg');
+  } catch (err) {
+    console.warn('Logo dönüştürme hatası:', err);
+  }
 
-  pdf.setFontSize(16);
-  pdf.setTextColor(185,28,28);
-  pdf.text('AVIS RENT A CAR - eFATURA', margin, y+40);
-  pdf.setTextColor(0,0,0);
-  y+=70;
-
-  pdf.setFontSize(10);
-  pdf.text('Fatura Tarihi: '+new Date().toLocaleString('tr-TR'), margin, y);
-  pdf.text('Seri No: '+document.getElementById('faturaSeri').textContent, margin+300, y);
-  y+=20;
-
-  pdf.setFontSize(12);
-  pdf.text('Müşteri Bilgileri', margin, y); y+=14;
-  pdf.setFontSize(10);
-  pdf.text(`Ad Soyad: ${document.getElementById('adSoyad').value}`, margin, y+=12);
-  pdf.text(`TC / Vergi No: ${document.getElementById('tc').value}`, margin, y+=12);
-  pdf.text(`Telefon: ${document.getElementById('tel').value}`, margin, y+=12);
-  pdf.text(`E-posta: ${document.getElementById('email').value}`, margin, y+=12);
-  pdf.text(`Adres: ${document.getElementById('adres').value}`, margin, y+=12);
-  y+=20;
-
-  pdf.setFontSize(12);
-  pdf.text('Araç Bilgileri', margin, y); y+=14;
-  pdf.setFontSize(10);
-  pdf.text(`Marka: ${document.getElementById('marka').value}`, margin, y+=12);
-  pdf.text(`Model: ${document.getElementById('model').value}`, margin, y+=12);
-  pdf.text(`Plaka: ${document.getElementById('plaka').value}`, margin, y+=12);
-  pdf.text(`Yakıt/Vites: ${document.getElementById('yakit').value}`, margin, y+=12);
-  pdf.text(`Ek Bilgi: ${document.getElementById('ek').value}`, margin, y+=12);
-  y+=20;
-
-  pdf.setFontSize(12);
-  pdf.text('Kiralama Bilgileri', margin, y); y+=14;
-  pdf.setFontSize(10);
-  pdf.text(`Başlangıç: ${document.getElementById('baslangic').value}`, margin, y+=12);
-  pdf.text(`Bitiş: ${document.getElementById('bitis').value}`, margin, y+=12);
-  pdf.text(`Gün Sayısı: ${document.getElementById('gun').value}`, margin, y+=12);
-  pdf.text(`Teslimat Türü: ${document.getElementById('teslimat').value}`, margin, y+=12);
-  pdf.text(`Ödeme Yöntemi: ${document.getElementById('odeme').value}`, margin, y+=12);
-  y+=20;
-
-  pdf.setFontSize(12);
-  pdf.text('Fiyat Bilgileri', margin, y); y+=14;
-  pdf.setFontSize(10);
-  pdf.text(`Günlük Ücret: ${document.getElementById('gunluk').value} ₺`, margin, y+=12);
-  pdf.text(`KDV Oranı: ${document.getElementById('kdv').value} %`, margin, y+=12);
-  pdf.text(`Depozito: ${document.getElementById('depozito').value} ₺`, margin, y+=12);
-  pdf.text(`Toplam: ${document.getElementById('toplam').value} ₺`, margin, y+=12);
-  y+=20;
-
-  pdf.setFontSize(9);
-  pdf.text('Bu belge 509 Sıra Nolu VUK Genel Tebliği’ne göre e-Fatura niteliğindedir.', margin, y+=20);
-
-  const serial = document.getElementById('faturaSeri').textContent.replace(/\\s+/g,'_');
-  pdf.save(`Avis_EFatura_${serial}.pdf`);
+  await pdf.html(element, {
+    margin: [20, 20, 20, 20],
+    autoPaging: 'text',
+    html2canvas: { scale: 0.8, useCORS: true },
+    callback: function (doc) {
+      const serial = document.getElementById('faturaSeri').textContent.replace(/\s+/g,'_');
+      doc.save(`Avis_EFatura_${serial}.pdf`);
+    }
+  });
 });
 </script>
 </body>
