@@ -1,87 +1,309 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="tr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AVIS e-Fatura</title>
-  <link rel="stylesheet" href="css/style.css" />
-  <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>AVİS Filo Kiralama - Fatura (A4)</title>
+<style>
+  :root{--page-bg:#f6f7f9;--panel-bg:#ffffff;--muted:#6b7280;--accent:#b91c1c}
+  html,body{height:100%;margin:0;background:var(--page-bg);font-family:Arial, Helvetica, sans-serif;color:#111}
+  .wrap{width:210mm;margin:18px auto;padding:12mm;box-sizing:border-box}
+  .invoice{background:var(--panel-bg);padding:14mm;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,0.08);min-height:269mm;box-sizing:border-box}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  header .center{flex:1;text-align:center}
+  header img.logo{max-width:110px;height:auto}
+  header img.center-img{max-width:220px;height:auto;display:block;margin:0 auto}
+  h1.title{margin:6px 0 2px 0;font-size:16px;letter-spacing:1px}
+  .sub{font-size:12px;color:var(--muted)}
+  .meta{font-size:12px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+  .box{background:#fbfbfb;border:1px solid #eee;padding:10px;border-radius:6px}
+  label.small{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+  .value, input[type="text"], input[type="number"], textarea, .editable{
+    display:block;width:100%;padding:8px;border-radius:4px;border:1px dashed #ddd;background:transparent;font-size:14px;box-sizing:border-box;
+  }
+  select {width:100%;padding:8px;border-radius:4px;border:1px solid #ccc;background:#fff;font-size:14px;box-sizing:border-box}
+  .list{margin:6px 0 0 18px}
+  .section-title{font-weight:700;margin-bottom:8px;font-size:13px;color:#111}
+  table{width:100%;border-collapse:collapse;margin-top:10px}
+  th,td{padding:8px;border-bottom:1px solid #eee;text-align:left;font-size:13px}
+  tfoot td{border-top:2px solid #eee}
+  .right{text-align:right}
+  .total{color:var(--accent);font-weight:800;font-size:18px}
+  .controls{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+  button{padding:8px 12px;border-radius:6px;border:none;cursor:pointer;background:#111;color:#fff}
+  button.secondary{background:#6b7280}
+  @media print{
+    body{background:#fff}
+    .wrap{margin:0;padding:0}
+    .invoice{box-shadow:none;border-radius:0;padding:12mm}
+    .no-print{display:none}
+    /* hide select controls in print explicitly */
+    .print-hide{display:none !important}
+  }
+  .muted{color:var(--muted);font-size:12px}
+  .small-note{font-size:12px;color:#444;margin-top:8px}
+  .highlight{background:#f3f4f6;padding:6px;border-radius:4px}
+  /* Ensure delivery/payment printed text stands out */
+  .selected-value{font-weight:600}
+</style>
 </head>
 <body>
-  <div class="invoice-container" id="invoiceRoot">
-    <div class="watermark">AVIS</div>
 
-    <div class="header-row">
-      <div class="header-left">
-        <div>Fatura Tarihi: <span id="faturaTarih">--</span></div>
-        <div>Seri No: <strong id="faturaSeri">AVS2025 / 00001</strong></div>
+<div class="wrap">
+  <div class="invoice" id="invoice">
+    <div class="no-print controls" style="margin-bottom:8px">
+      <button onclick="calculateAndShow()">Hesapla</button>
+      <button class="secondary" onclick="window.print()">Yazdır / PDF</button>
+      <button class="secondary" onclick="resetExample()">Örnek Doldur</button>
+    </div>
+
+    <header>
+      <div style="width:140px;text-align:left">
+        <img src="avis.jpg" alt="logo" class="logo" style="float:right;">
       </div>
 
-      <div class="logo-center">
-        <img src="img/avis2.jpg" alt="Logo 1" crossorigin="anonymous" />
+      <div class="center">
+        <img src="avis2.jpg" alt="center" class="center-img">
+        <h1 class="title">AVİS FİLO KİRALAMA FATURASI</h1>
+        <div class="sub">Resmi fatura / Hizmet dökümü</div>
       </div>
 
-      <div class="logo-right">
-        <img src="img/avis.jpg" alt="Logo 2" crossorigin="anonymous" />
+      <div style="width:140px;text-align:right">
+        <div class="meta">
+          <div><strong>Fatura No:</strong> <span class="value editable" id="reservation" contenteditable="true" data-placeholder="Rezervasyon Numarası">#107543</span></div>
+          <div class="muted">Tarih: <span class="value editable" id="date" contenteditable="true">06.11.2025</span></div>
+        </div>
+      </div>
+    </header>
+
+    <section style="margin-top:12px">
+      <div class="grid">
+        <div class="box">
+          <div class="section-title">Müşteri Bilgileri</div>
+          <label class="small">Ad Soyad</label>
+          <div id="customer_name" class="value editable" contenteditable="true">Ali Çaylı</div>
+
+          <label class="small" style="margin-top:8px">Teslimat Türü</label>
+          <!-- ekran için seçim, yazdırmada hide -->
+          <div class="no-print">
+            <select id="delivery_select">
+              <option value="VALE TESLİMATI">VALE TESLİMATI</option>
+              <option value="ŞUBEDE TESLİM">ŞUBEDE TESLİM</option>
+              <option value="KAPIDA TESLİM">KAPIDA TESLİM</option>
+              <option value="DİĞER">DİĞER (yazınız)</option>
+            </select>
+            <div class="small-note muted">"DİĞER" seçersen altındaki kutuya yaz.</div>
+            <input id="delivery_other" type="text" placeholder="Diğer teslimat türü" style="margin-top:6px" />
+          </div>
+
+          <!-- yazdırma/çıktı için sadece seçili değer gösterilecek -->
+          <div class="print-hide" style="display:none"></div>
+          <div style="margin-top:8px">
+            <span class="muted">Seçilen Teslimat:</span>
+            <div id="delivery_view" class="value selected-value">VALE TESLİMATI</div>
+          </div>
+        </div>
+
+        <div class="box">
+          <div class="section-title">Araç Bilgileri</div>
+          <label class="small">Araç Marka</label>
+          <div id="car_brand" class="value editable" contenteditable="true">Ford</div>
+
+          <label class="small">Araç Model</label>
+          <div id="car_model" class="value editable" contenteditable="true">Tourneo - 2024</div>
+
+          <label class="small" style="margin-top:8px">Ek Bilgi</label>
+          <div id="car_extra" class="value editable" contenteditable="true">Otomatik / Dizel</div>
+        </div>
+      </div>
+    </section>
+
+    <section style="margin-top:14px">
+      <div class="grid">
+        <div class="box">
+          <div class="section-title">Kiralama Tarihleri</div>
+          <label class="small">Başlangıç Tarihi (gg.aa.yyyy --:--)</label>
+          <div id="start" class="value editable" contenteditable="true">01.12.2025 --:--</div>
+
+          <label class="small" style="margin-top:8px">Bitiş Tarihi (gg.aa.yyyy --:--)</label>
+          <div id="end" class="value editable" contenteditable="true">01.01.2026 --:--</div>
+        </div>
+
+        <div class="box">
+          <div class="section-title">Kiralama Bilgileri</div>
+
+          <label class="small">Kiralama Gün Sayısı</label>
+          <input id="days" type="number" min="0" value="31" />
+
+          <label class="small" style="margin-top:8px">Depozito (₺)</label>
+          <input id="deposit" type="number" min="0" value="5000" />
+
+          <label class="small" style="margin-top:8px">KDV Oranı (%)</label>
+          <input id="vat" type="number" min="0" value="0" />
+
+          <label class="small" style="margin-top:8px">Kiralama Ücreti (₺)</label>
+          <input id="rent" type="number" min="0" value="27500" />
+        </div>
+      </div>
+    </section>
+
+    <section style="margin-top:14px">
+      <div class="box">
+        <div class="section-title">Ödeme & Notlar</div>
+
+        <label class="small">Ödeme Yöntemi</label>
+        <div class="no-print">
+          <select id="payment_select">
+            <option value="Kredi Kartı">Kredi Kartı</option>
+            <option value="Nakit">Nakit</option>
+            <option value="Havale / EFT">Havale / EFT</option>
+            <option value="DİĞER">DİĞER (yazınız)</option>
+          </select>
+          <input id="payment_other" type="text" placeholder="Diğer ödeme yöntemi" style="margin-top:6px" />
+        </div>
+
+        <div style="margin-top:8px">
+          <span class="muted">Seçilen Ödeme:</span>
+          <div id="payment_view" class="value selected-value">Kredi Kartı</div>
+        </div>
+
+        <label class="small" style="margin-top:8px">Diğer Notlar</label>
+        <div id="notes" class="value editable" contenteditable="true">Araç yakıtı iade edilir.</div>
+      </div>
+    </section>
+
+    <section style="margin-top:14px">
+      <table>
+        <thead>
+          <tr>
+            <th>Açıklama</th>
+            <th class="right">Depozito</th>
+            <th class="right">KDV</th>
+            <th class="right">Kiralama Ücreti</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td id="desc">Araç kiralama: <span id="car_desc">Ford Tourneo</span></td>
+            <td class="right" id="dep_view">0,00 ₺</td>
+            <td class="right" id="vat_view">0,00 ₺</td>
+            <td class="right" id="rent_view">0,00 ₺</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td></td>
+            <td></td>
+            <td class="right muted">Ara Toplam</td>
+            <td class="right" id="sub_view">0,00 ₺</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td></td>
+            <td class="right muted">Toplam KDV</td>
+            <td class="right" id="vat_total_view">0,00 ₺</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td></td>
+            <td class="right muted">Toplam</td>
+            <td class="right total" id="total_view">0,00 ₺</td>
+          </tr>
+        </tfoot>
+      </table>
+    </section>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px">
+      <div class="muted">Bu belge AVIS Rent A Car tarafından elektronik ortamda düzenlenmiştir.
+Resmî e-Fatura olarak kabul edilir ve 509 Sıra No’lu Vergi Usul Kanunu Genel Tebliği’ne göre arşivlenmektedir.
+Bilgilerin doğruluğu, düzenleyen ve alıcı tarafın beyanına dayanmaktadır..</div>
+      <div style="text-align:right">
+        <div><strong>AVİS</strong></div>
+        <div class="muted">AVİS Filo Kiralama</div>
       </div>
     </div>
 
-    <h1 class="title">AVIS RENT A CAR - eFATURA</h1>
-
-    <form id="efForm">
-      <div class="section">
-        <div class="card">
-          <div style="font-weight:800; margin-bottom:8px;">Müşteri Bilgileri</div>
-          <label>Ad Soyad</label><input name="adSoyad" type="text" placeholder="Ad Soyad">
-          <label>TC / Vergi No</label><input name="tc" type="text" placeholder="T.C. Kimlik veya Vergi No">
-          <label>Telefon</label><input name="tel" type="text" placeholder="+90 5xx xxx xxxx">
-          <label>E-posta</label><input name="email" type="text" placeholder="eposta@ornek.com">
-          <label>Adres</label><textarea name="adres" placeholder="Adres bilgisi"></textarea>
-        </div>
-
-        <div class="card">
-          <div style="font-weight:800; margin-bottom:8px;">Araç Bilgileri</div>
-          <label>Marka</label><input name="marka" type="text" placeholder="Örn: Renault">
-          <label>Model</label><input name="model" type="text" placeholder="Örn: Clio">
-          <label>Plaka</label><input name="plaka" type="text" placeholder="34ABC34">
-          <label>Yakıt / Vites</label><input name="yakit" type="text" placeholder="Benzin / Manuel">
-          <label>Ek Bilgi</label><textarea name="ek" placeholder="Opsiyonel not"></textarea>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="card">
-          <div style="font-weight:800; margin-bottom:8px;">Kiralama Bilgileri</div>
-          <label>Başlangıç Tarihi</label><input name="baslangic" type="datetime-local">
-          <label>Bitiş Tarihi</label><input name="bitis" type="datetime-local">
-          <label>Teslimat Türü</label>
-          <select name="teslimat">
-            <option value="Ofisten Teslim">Ofisten Teslim</option>
-            <option value="Adrese Teslim">Adrese Teslim</option>
-            <option value="Vale">Vale</option>
-          </select>
-          <label>Gün Sayısı</label><input name="gun" type="number" min="0">
-        </div>
-
-        <div class="card">
-          <div style="font-weight:800; margin-bottom:8px;">Fiyat Bilgileri</div>
-          <label>Günlük Ücret (₺)</label><input name="gunluk" type="number" step="0.01">
-          <label>Depozito (₺)</label><input name="depozito" type="number" step="0.01">
-          <label>KDV Oranı (%)</label><input name="kdv" type="number" value="18" step="0.01">
-          <label>Toplam (₺)</label><input name="toplam" type="number" step="0.01">
-        </div>
-      </div>
-
-      <div style="text-align:center; margin-top:14px;">
-        <button type="button" class="btn" id="savePdfBtn">PDF Olarak Kaydet</button>
-      </div>
-    </form>
-
-    <p class="note">Bu belge 509 Sıra Nolu VUK Genel Tebliği’ne göre e-Fatura niteliğindedir.</p>
   </div>
+</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="js/app.js"></script>
+<script>
+  function formatTR(n){
+    var num = Number(n || 0);
+    var s = (Math.round((num + Number.EPSILON) * 100) / 100).toFixed(2);
+    var parts = s.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return parts.join(',') + ' ₺';
+  }
+
+  function getInputs(){
+    var deposit = Number(document.getElementById('deposit').value || 0);
+    var vatRate = Number(document.getElementById('vat').value || 0);
+    var rent = Number(document.getElementById('rent').value || 0);
+    var delivery = document.getElementById('delivery_select').value;
+    var deliveryOther = document.getElementById('delivery_other').value.trim();
+    if(delivery === 'DİĞER' && deliveryOther) delivery = deliveryOther;
+    var payment = document.getElementById('payment_select').value;
+    var paymentOther = document.getElementById('payment_other').value.trim();
+    if(payment === 'DİĞER' && paymentOther) payment = paymentOther;
+    return {deposit, vatRate, rent, delivery, payment};
+  }
+
+  function calculateAndShow(){
+    var {deposit, vatRate, rent, delivery, payment} = getInputs();
+    var vatAmount = (rent * (vatRate / 100));
+    var sub = rent + deposit;
+    var total = sub + vatAmount;
+
+    document.getElementById('dep_view').textContent = formatTR(deposit);
+    document.getElementById('vat_view').textContent = formatTR(vatAmount);
+    document.getElementById('rent_view').textContent = formatTR(rent);
+    document.getElementById('sub_view').textContent = formatTR(sub);
+    document.getElementById('vat_total_view').textContent = formatTR(vatAmount);
+    document.getElementById('total_view').textContent = formatTR(total);
+
+    var brand = document.getElementById('car_brand').textContent.trim();
+    var model = document.getElementById('car_model').textContent.trim();
+    document.getElementById('car_desc').textContent = brand + ' ' + model;
+
+    // update delivery & payment visible text (this is what prints)
+    document.getElementById('delivery_view').textContent = delivery;
+    document.getElementById('payment_view').textContent = payment;
+  }
+
+  function resetExample(){
+    document.getElementById('reservation').textContent = '#107543';
+    document.getElementById('date').textContent = '06.11.2025';
+    document.getElementById('customer_name').textContent = 'Ali Çaylı';
+    document.getElementById('car_brand').textContent = 'Ford';
+    document.getElementById('car_model').textContent = 'Tourneo - 2024';
+    document.getElementById('car_extra').textContent = 'Otomatik / Dizel';
+    document.getElementById('start').textContent = '01.12.2025 --:--';
+    document.getElementById('end').textContent = '01.01.2026 --:--';
+    document.getElementById('days').value = 31;
+    document.getElementById('deposit').value = 5000;
+    document.getElementById('vat').value = 0;
+    document.getElementById('rent').value = 27500;
+    document.getElementById('notes').textContent = 'Araç yakıtı iade edilir.';
+    document.getElementById('delivery_select').value = 'VALE TESLİMATI';
+    document.getElementById('delivery_other').value = '';
+    document.getElementById('payment_select').value = 'Kredi Kartı';
+    document.getElementById('payment_other').value = '';
+    calculateAndShow();
+  }
+
+  // update preview when selects/other inputs change
+  document.addEventListener('DOMContentLoaded', function(){
+    calculateAndShow();
+    document.getElementById('delivery_select').addEventListener('change', calculateAndShow);
+    document.getElementById('delivery_other').addEventListener('input', calculateAndShow);
+    document.getElementById('payment_select').addEventListener('change', calculateAndShow);
+    document.getElementById('payment_other').addEventListener('input', calculateAndShow);
+    document.getElementById('deposit').addEventListener('input', calculateAndShow);
+    document.getElementById('vat').addEventListener('input', calculateAndShow);
+    document.getElementById('rent').addEventListener('input', calculateAndShow);
+  });
+</script>
+
 </body>
 </html>
